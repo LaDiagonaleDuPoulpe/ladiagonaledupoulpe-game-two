@@ -1,37 +1,42 @@
 using Godot;
 using System;
 
-public class PixBlock : KinematicBody2D
+public class PixBlock : Node2D
 {
-    // Declare member variables here. Examples:
-    // private int a = 2;
-    // private string b = "text";
+    private const string ANIMATED_SPRITE = "AnimatedSprite";
+    private const string LAST_PIX_BLOCK = "LastPixBlock";
+    private const string MONSTRE = "Monstre";
+    private const string ALLOWED_HANGING = "AllowedHanging";
 
-    // Called when the node enters the scene tree for the first time.
-    private AnimatedSprite animSprite;
+    private AnimatedSprite _animSprite;
+
+    private Tentacule _parent;
+
+    private Player _player;
 
     public override void _Ready()
     {
-        animSprite = ((AnimatedSprite) GetNode("AnimatedSprite"));
+        _animSprite = ((AnimatedSprite) GetNode(ANIMATED_SPRITE));
+
+        _parent = ((Tentacule) this.GetParent());
+
+        _player = ((Player) _parent.GetParent());
     }
 
     public void _on_Pixblock_body_entered(KinematicBody2D body)
     {
-        if(body.Name == "Monstre")
+        if(this.Name == LAST_PIX_BLOCK  && _player.HangingStatus)
         {
-            ((Monstre) body).Health -= 25;
+            if(body.Name.Contains(MONSTRE))
+            {
+                ((Monstre) body).Health -= 25;
+                ((Monstre) body).IsHit = true;
+            }
+
+            if(body.Name == ALLOWED_HANGING)
+            {
+                _player.AllowedHanging = true;
+            }
         }
-
-        if(body.Name == "AllowedHanging")
-        {
-            ((Player) GetParent().GetParent()).AllowedHanging = true;
-        }
-
-    }
-
-    // Called every frame. 'delta' is the elapsed time since the previous frame.
-    public override void _PhysicsProcess(float delta)
-    {
-        animSprite.Play("pixBlockAnim");
     }
 }

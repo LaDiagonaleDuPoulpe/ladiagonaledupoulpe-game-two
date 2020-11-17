@@ -1,13 +1,15 @@
 using Godot;
 using System;
 
+using Animations;
 public class Monstre : KinematicBody2D
 {
-
     private AnimatedSprite _monstre;
+	private const int MONSTRE_SPEED = 400;
+    private const int MONSTRE_GRAVITY = 1200;
 
-    private const int MONSTRE_SPEED = 250;
-    private const int MONSTRE_GRAVITY = 500;
+    private const string LAST_PIX_BLOCK = "LastPixBlock";
+    private const string PLAYER = "Player";
 
     private Vector2 _velocity;
 
@@ -25,7 +27,20 @@ public class Monstre : KinematicBody2D
         }
     }
 
-    private bool _attackStatus;
+    private bool _isAttack;
+
+    public bool IsAttack
+    {
+        get
+        {
+            return this._isAttack;
+        }
+        set
+        {
+            this._isAttack = value;
+        }
+    }
+
 
     private bool _isOnGround;
 
@@ -55,9 +70,21 @@ public class Monstre : KinematicBody2D
         }
     }
 
+    private bool _isHit;
+	public bool IsHit
+	{
+		get
+		{
+			return this._isHit;
+		}
+		set
+		{
+			this._isHit = value;
+		}
+	}
+
     private Tween _tween;
 
-    // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
         _tween = new Tween();
@@ -66,45 +93,56 @@ public class Monstre : KinematicBody2D
         _tween.InterpolateCallback(this, 2f, nameof(ChangeDirection));
         _tween.Start();
 
+        this.IsHit = false;
         this.Direction = false;
         
         _monstre = ((AnimatedSprite) this.GetChild(0));
-        this.Health = 25;
-        this._attackStatus = false;
+        this.Health = 50;
+        this.IsAttack = false;
         _isOnGround = false;
     }
 
     public void _on_Monstre_body_entered(KinematicBody2D body)
     {
-        if(body.Name == "Player")
+        if(body.Name == PLAYER)
         {
-            this._attackStatus = true;
-            this.Player = ((Player) body);
-            this.Player.Health -= 25;
+            if(this.Health > 0)
+            {
+                this.IsAttack = true;
+            }
         }
+        // if(body.Name == LAST_PIX_BLOCK)
+        // {
+        //     GD.Print("Monstre body entered => " + body.Name);
+        //     this.IsHit = true;
+        //     this.Health -= 25;
+        // }
     }
 
     public void _on_Monstre_body_exited(KinematicBody2D body)
     {
-        if(body.Name == "Player")
+        if(body.Name == PLAYER)
         {
-            this._attackStatus = false;
+            this.IsAttack = false;
         }
     }
 
     public void _on_AnimatedSprite_animation_finished()
     {
-        if(_monstre.Animation == "MonstreDeath")
+        if(_monstre.Animation == EnnemiesAnimations.MonstreDeath.ToString())
         {
             this.QueueFree();
         }
-        // if(_monstre.Animation == "MonstreAttack")
-        // {
-        //     this._attackStatus = false;
-        // }
+        if(_monstre.Animation == EnnemiesAnimations.MonstreAttack.ToString())
+        {
+            this.IsAttack = false;
+        }
+        if(_monstre.Animation == EnnemiesAnimations.MonstreHurt.ToString())
+        {
+            this.IsHit = false;
+        }
     }
 
-    // Called every frame. 'delta' is the elapsed time since the previous frame.
     public override void _PhysicsProcess(float delta)
     {
         _velocity = new Vector2();
@@ -112,7 +150,7 @@ public class Monstre : KinematicBody2D
 
         _velocity.y += (MONSTRE_GRAVITY * 100) * delta;
         
-        if(!this._attackStatus)
+        if(!this.IsAttack)
         {
             if(!Direction)
             {
@@ -125,31 +163,40 @@ public class Monstre : KinematicBody2D
                 _velocity.x += MONSTRE_SPEED;
             }
         }
-
-
-        
         
         if(this.Health <= 0)
-        {   
+        {
+            if(this.GetChildren().Count >= 3)
+            {
+                this.GetChild(1).QueueFree();
+                this.GetChild(2).QueueFree();
+            }
+
             _tween.Stop(this);
-            _monstre.Play("MonstreDeath");
+            _monstre.Play(EnnemiesAnimations.MonstreDeath.ToString());
         }
         else
         {
-            if((_velocity.x > 0 || _velocity.x < 0) && !this._attackStatus)
+            if(this.IsHit)
+            {
+                this._velocity.x = 0;
+                _monstre.Offset = new Vector2(0, 25);
+                _monstre.Play(EnnemiesAnimations.MonstreHurt.ToString());
+            }
+            else if((_velocity.x > 0 || _velocity.x < 0) && !this.IsAttack)
             {
                 _monstre.Offset = new Vector2(0, 0);
-                _monstre.Play("MonstreRun");
+                _monstre.Play(EnnemiesAnimations.MonstreRun.ToString());
             }
-            else if(this._attackStatus)
+            else if(this.IsAttack)
             {
                 _monstre.Offset = new Vector2(0, 25);
-                _monstre.Play("MonstreAttack");
+                _monstre.Play(EnnemiesAnimations.MonstreAttack.ToString());
             }
             else
             {
                 _monstre.Offset = new Vector2(0, 50);
-                _monstre.Play("MonstreIdle");
+                _monstre.Play(EnnemiesAnimations.MonstreIdle.ToString());
             }
 
             _velocity = MoveAndSlide(_velocity, new Vector2(0, -1));

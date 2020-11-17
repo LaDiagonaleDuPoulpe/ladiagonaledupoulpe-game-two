@@ -6,22 +6,26 @@ using System.Collections.Generic;
 /// </summary>
 public class Tentacule : KinematicBody2D
 {
-	private string _positionRelativeToPlayer;
+	// Const
+	private const string FIRST_PIX_BLOCK = "FirstPixBlock";
+	private const string LAST_PIX_BLOCK = "LastPixBlock";
+	private const string PIX_BLOCK = "PixBlock";
 
-	public string PositionRelativeToPlayer
+
+	private bool _isPositionRight;
+
+	public bool IsPositionRight
 	{
 		get
 		{
-			return this._positionRelativeToPlayer;
+			return this._isPositionRight;
 		}
 
 		set
 		{
-			this._positionRelativeToPlayer = value;
+			this._isPositionRight = value;
 		}
 	}
-
-	private KinematicBody2D _pixBlock;
 	
 	private PackedScene _pixBlockScene;
 
@@ -53,15 +57,13 @@ public class Tentacule : KinematicBody2D
 		}
 	}
 	
-	private SpriteFrames _aPix;
-	
-	public Tentacule(string positionRelativeToPlayer)
+	public Tentacule(bool positionRelativeToPlayer)
 	{
-		this.PositionRelativeToPlayer = positionRelativeToPlayer;
+		this.IsPositionRight = positionRelativeToPlayer;
 		this.PixBlockArray = new List<PixBlock>();
 	}
 
-	// Called when the node enters the scene tree for the first time.
+
 	public override void _Ready()
 	{
 		_pixBlockScene = ((PackedScene) ResourceLoader.Load("res://Sources/App/Core/Models/Friendly/Player/PixBlock.tscn"));
@@ -69,38 +71,15 @@ public class Tentacule : KinematicBody2D
 		this.PlayerScale = player.Scale.x;
 	}
 
-	public override void _Draw()
+	public void AddNewPixBlock()
 	{
-		// if(this.PositionRelativeToPlayer == "Right")
-		// {
-		// 	DrawCircle(new Vector2(this.PixBlockArray[0].Position.x, this.PixBlockArray[0].Position.y), (this.PixBlockArray[PixBlockArray.Count-1].Position.x - this.PixBlockArray[0].Position.x)+100, new Color(1, 0, 0, 1));
-		// }
-		// else
-		// {
-		// 	DrawCircle(new Vector2(this.PixBlockArray[0].Position.x, this.PixBlockArray[0].Position.y), (this.PixBlockArray[0].Position.x - this.PixBlockArray[PixBlockArray.Count-1].Position.x)+100, new Color(1, 0, 0, 1));
-		// }
-		
-	} 
-
-	// Called every frame. 'delta' is the elapsed time since the previous frame.
-	public override void _Process(float delta)
-	{
-		//ShowPixBlocks();
-	}
-	
-	public void AddNewPixBlock(PixBlock pixBlock)
-	{
-		//_aPix = ResourceLoader.Load("res://Sources/App/Core/Models/Friendly/Player/PixBlock.tres") as SpriteFrames;
-
-		pixBlock = ((PixBlock) _pixBlockScene.Instance());
+		PixBlock pixBlock = ((PixBlock) _pixBlockScene.Instance());
 		Vector2 pos = this.Position;
 		
-		//aPlayer.Frames = _aPix;
 		float scaleX = 0.05f;
 		float scaleY = 0.05f;
 		pixBlock.Scale = new Vector2(scaleX, scaleY);
 		
-		//pixBlock.AddChild((AnimatedSprite) aPlayer);
 		this.AddChild(pixBlock);
 		this.PixBlockArray.Add(pixBlock);
 		
@@ -118,12 +97,12 @@ public class Tentacule : KinematicBody2D
 		{
 			posY = (rng.RandfRange(-5, 5));
 		}
-		
-		if(this.PositionRelativeToPlayer == "Right")
+
+		if(this.IsPositionRight)
 		{
 			pixBlock.Position = new Vector2(50*this.PixBlockArray.IndexOf(pixBlock), posY);
 		}
-		else if(this.PositionRelativeToPlayer == "Left")
+		else if(!this.IsPositionRight)
 		{
 			pixBlock.Position = new Vector2(-(50*this.PixBlockArray.IndexOf(pixBlock)), posY);
 		}
@@ -131,5 +110,15 @@ public class Tentacule : KinematicBody2D
 		{
 			GD.Print("Error => Argument 5 invalid => Right or Left");
 		}
+
+		for(int i = 0; i <= this.PixBlockArray.Count-1; i++)
+		{
+			if(this.PixBlockArray[i].Name == LAST_PIX_BLOCK)
+			{
+				this.PixBlockArray[i].Name = PIX_BLOCK;
+			}
+		}
+		this.PixBlockArray[0].Name = FIRST_PIX_BLOCK;
+		this.PixBlockArray[this.PixBlockArray.Count-1].Name = LAST_PIX_BLOCK;
 	}
 }
